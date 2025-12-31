@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Show workspace tree
+        run: |
+          pwd
+          ls -R
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -19,19 +24,19 @@ jobs:
           node-version: 18
 
       - name: Install Backend Dependencies
-        working-directory: Personal_Finance_Manager_Project/backend
+        working-directory: ./Personal_Finance_Manager_Project/backend
         run: npm install
 
       - name: Backend Build Check
-        working-directory: Personal_Finance_Manager_Project/backend
+        working-directory: ./Personal_Finance_Manager_Project/backend
         run: npm run build || echo "No build script — skipping"
 
       - name: Install Frontend Dependencies
-        working-directory: Personal_Finance_Manager_Project/frontend
+        working-directory: ./Personal_Finance_Manager_Project/frontend
         run: npm install
 
       - name: Build Frontend
-        working-directory: Personal_Finance_Manager_Project/frontend
+        working-directory: ./Personal_Finance_Manager_Project/frontend
         run: npm run build
 
       - name: List Files
