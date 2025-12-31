@@ -13,6 +13,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # --- Debug: print repo structure (runner root)
       - name: Show workspace tree
         run: |
           echo "PWD:"
@@ -25,21 +26,31 @@ jobs:
         with:
           node-version: 18
 
-      #- name: Install Backend Dependencies
-      #  working-directory: Personal_Finance_Manager_Project/backend
-      #  run: npm install
+      # --- Debug: verify folders exist inside project directory
+      - name: Show project contents
+        working-directory: Personal_Finance_Manager_Project
+        run: |
+          echo "Inside project directory:"
+          pwd
+          ls -al
 
-      #- name: Backend Build Check
-      #  working-directory: Personal_Finance_Manager_Project/backend
-      #  run: npm run build || echo "No build script — skipping"
+      # --- Backend CI
+      - name: Install Backend Dependencies
+        working-directory: Personal_Finance_Manager_Project/backend
+        run: npm install
 
-      #- name: Install Frontend Dependencies
-      #  working-directory: Personal_Finance_Manager_Project/frontend
-      #  run: npm install
+      - name: Backend Build Check
+        working-directory: Personal_Finance_Manager_Project/backend
+        run: npm run build || echo "No build script — skipping"
 
-      #- name: Build Frontend
-      #  working-directory: Personal_Finance_Manager_Project/frontend
-      #  run: npm run build
+      # --- Frontend CI
+      - name: Install Frontend Dependencies
+        working-directory: Personal_Finance_Manager_Project/frontend
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: Personal_Finance_Manager_Project/frontend
+        run: npm run build
 
       - name: List Files
         run: ls -la
