@@ -10,13 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Show workspace tree
-        run: |
-          pwd
-          ls -R
-
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Show workspace tree
+        run: |
+          echo "PWD:"
+          pwd
+          echo "List:"
+          ls -R
 
       - name: Setup Node
         uses: actions/setup-node@v4
