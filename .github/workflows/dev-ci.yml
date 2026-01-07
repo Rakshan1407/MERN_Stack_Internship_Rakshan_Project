@@ -99,7 +99,8 @@ jobs:
           script: |
             cd ${{ secrets.APP_PATH }}/Personal_Finance_Manager_Project/backend
             npm install
-            pm2 restart pfm-backend || pm2 start server.js --name pfm-backend
+            pm2 reload pfm-backend --update-env || pm2 start server.js --name pfm-backend
+            pm2 save
 
             cd ../frontend
             npm install
