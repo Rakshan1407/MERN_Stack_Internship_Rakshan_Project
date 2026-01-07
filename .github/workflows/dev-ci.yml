@@ -1,0 +1,104 @@
+name: DEV CI + Manual Deploy Pipeline
+
+on:
+  push:
+    branches:
+      - dev        # CI runs automatically
+
+  workflow_dispatch:   # You manually trigger deploy
+
+jobs:
+
+  # -----------------------------
+  # 1️⃣  CI JOB (Auto — Build & Verify)
+  # -----------------------------
+  ci-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Show workspace tree
+        run: |
+          echo "PWD:"
+          pwd
+          echo "List:"
+          ls -R
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Show project contents
+        working-directory: Personal_Finance_Manager_Project
+        run: |
+          echo "Inside project directory:"
+          pwd
+          ls -al
+
+      # --- Backend CI ---
+      - name: Install Backend Dependencies
+        working-directory: Personal_Finance_Manager_Project/backend
+        run: npm install
+
+      - name: Backend Build Check
+        working-directory: Personal_Finance_Manager_Project/backend
+        run: npm run build || echo "No build script — skipping"
+
+      # --- Frontend CI ---
+      - name: Install Frontend Dependencies
+        working-directory: Personal_Finance_Manager_Project/frontend
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: Personal_Finance_Manager_Project/frontend
+        run: npm run build
+
+      - name: List Files
+        run: ls -la
+
+      - name: Print Commit Info
+        run: echo "Commit triggered by ${{ github.actor }}"
+
+
+  # -----------------------------
+  # 2️⃣  MANUAL DEPLOY JOB (Runs Only When Clicked)
+  # -----------------------------
+  deploy-to-aws:
+    needs: ci-checks          # deploy only if CI passed
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Copy project to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          source: "."
+          target: ${{ secrets.APP_PATH }}
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          script: |
+            cd ${{ secrets.APP_PATH }}/Personal_Finance_Manager_Project/backend
+            npm install
+            pm2 restart pfm-backend || pm2 start server.js --name pfm-backend
+
+            cd ../frontend
+            npm install
+            npm run build
