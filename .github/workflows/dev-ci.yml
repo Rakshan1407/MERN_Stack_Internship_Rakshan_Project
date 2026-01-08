@@ -67,7 +67,7 @@ jobs:
   # 2️⃣  MANUAL DEPLOY JOB (Runs Only When Clicked)
   # -----------------------------
   deploy-to-aws:
-    needs: ci-checks          # deploy only if CI passed
+    needs: ci-checks          
     runs-on: ubuntu-latest
 
     if: github.event_name == 'workflow_dispatch'
@@ -81,21 +81,24 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Copy project to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          source: "."
-          target: ${{ secrets.APP_PATH }}
-
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           script: |
-            cd ${{ secrets.APP_PATH }}/Personal_Finance_Manager_Project/backend
+            set -e
+
+            cd ${{ secrets.APP_PATH }}
+
+            if [ ! -d "Personal_Finance_Manager_Project" ]; then
+              git clone https://github.com/Rakshan1407/MERN_Stack_Internship_Rakshan_Project.git
+            else
+              cd Personal_Finance_Manager_Project
+              git pull origin main
+            fi
+
+            cd backend
             npm install
             pm2 describe pfm-backend > /dev/null \
               && pm2 restart pfm-backend \
@@ -105,3 +108,45 @@ jobs:
             cd ../frontend
             npm install
             npm run build
+      # EMAIL NOTIFICATION — SUCCESS
+      - name: Send Success Email
+        if: success()
+        uses: devops-infra/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Infomind — DEV Deployment SUCCESS"
+          to: ${{ secrets.EMAIL_TO }}
+          from: "Infomind CI Pipeline"
+          body: |
+            Deployment Successful
+
+            Project: Personal Finance Manager
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+
+            Run URL:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      # EMAIL NOTIFICATION — FAILURE
+      - name: Send Failure Email
+        if: failure()
+        uses: devops-infra/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Infomind — DEV Deployment FAILED"
+          to: ${{ secrets.EMAIL_TO }}
+          from: "Infomind CI Pipeline"
+          body: |
+            Deployment Failed
+
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+
+            Logs:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
