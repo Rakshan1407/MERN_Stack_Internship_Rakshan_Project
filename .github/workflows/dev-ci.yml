@@ -96,7 +96,7 @@ jobs:
       # -----------------------------
       - name: Send Success Email
         if: success()
-        uses: devops-infra/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 587
@@ -120,7 +120,7 @@ jobs:
       # -----------------------------
       - name: Send Failure Email
         if: failure()
-        uses: devops-infra/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 587
