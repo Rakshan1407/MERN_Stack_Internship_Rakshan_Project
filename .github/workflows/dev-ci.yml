@@ -3,14 +3,14 @@ name: DEV CI + Manual Deploy Pipeline
 on:
   push:
     branches:
-      - dev        # CI runs automatically
+      - dev
 
-  workflow_dispatch:   # You manually trigger deploy
+  workflow_dispatch:
 
 jobs:
 
   # -----------------------------
-  # 1️⃣  CI JOB (Auto — Build & Verify)
+  # 1️⃣ CI JOB (Auto — Build & Verify)
   # -----------------------------
   ci-checks:
     runs-on: ubuntu-latest
@@ -19,24 +19,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Show workspace tree
-        run: |
-          echo "PWD:"
-          pwd
-          echo "List:"
-          ls -R
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
-
-      - name: Show project contents
-        working-directory: Personal_Finance_Manager_Project
-        run: |
-          echo "Inside project directory:"
-          pwd
-          ls -al
 
       # --- Backend CI ---
       - name: Install Backend Dependencies
@@ -45,7 +31,7 @@ jobs:
 
       - name: Backend Build Check
         working-directory: Personal_Finance_Manager_Project/backend
-        run: npm run build || echo "No build script — skipping"
+        run: npm run build || echo "No backend build step"
 
       # --- Frontend CI ---
       - name: Install Frontend Dependencies
@@ -56,20 +42,16 @@ jobs:
         working-directory: Personal_Finance_Manager_Project/frontend
         run: npm run build
 
-      - name: List Files
-        run: ls -la
-
       - name: Print Commit Info
         run: echo "Commit triggered by ${{ github.actor }}"
 
 
   # -----------------------------
-  # 2️⃣  MANUAL DEPLOY JOB (Runs Only When Clicked)
+  # 2️⃣ MANUAL DEPLOY JOB
   # -----------------------------
   deploy-to-aws:
-    needs: ci-checks          
+    needs: ci-checks
     runs-on: ubuntu-latest
-
     if: github.event_name == 'workflow_dispatch'
 
     steps:
@@ -86,16 +68,18 @@ jobs:
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e
+            set -euo pipefail
 
             cd ${{ secrets.APP_PATH }}
 
             if [ ! -d "Personal_Finance_Manager_Project" ]; then
               git clone https://github.com/Rakshan1407/MERN_Stack_Internship_Rakshan_Project.git
+              cd Personal_Finance_Manager_Project
             else
               cd Personal_Finance_Manager_Project
-              git pull origin main
+              git pull origin dev
             fi
 
             cd backend
@@ -108,7 +92,11 @@ jobs:
             cd ../frontend
             npm install
             npm run build
+
+
+      # -----------------------------
       # EMAIL NOTIFICATION — SUCCESS
+      # -----------------------------
       - name: Send Success Email
         if: success()
         uses: devops-infra/action-send-mail@v3
@@ -121,7 +109,7 @@ jobs:
           to: ${{ secrets.EMAIL_TO }}
           from: "Infomind CI Pipeline"
           body: |
-            Deployment Successful
+            Deployment Successful 🎯
 
             Project: Personal Finance Manager
             Branch: ${{ github.ref_name }}
@@ -130,7 +118,10 @@ jobs:
             Run URL:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
+
+      # -----------------------------
       # EMAIL NOTIFICATION — FAILURE
+      # -----------------------------
       - name: Send Failure Email
         if: failure()
         uses: devops-infra/action-send-mail@v3
@@ -139,11 +130,11 @@ jobs:
           server_port: 587
           username: ${{ secrets.EMAIL_USER }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "Infomind — DEV Deployment FAILED"
+          subject: "Infomind — DEV Deployment FAILED ❌"
           to: ${{ secrets.EMAIL_TO }}
           from: "Infomind CI Pipeline"
           body: |
-            Deployment Failed
+            Deployment Failed ❌
 
             Branch: ${{ github.ref_name }}
             Commit: ${{ github.sha }}
