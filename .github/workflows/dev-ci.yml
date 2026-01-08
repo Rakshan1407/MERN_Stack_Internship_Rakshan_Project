@@ -48,7 +48,6 @@ jobs:
 
   # -----------------------------
   # 2️⃣ MANUAL DEPLOY JOB
-  # -----------------------------
   deploy-to-aws:
     needs: ci-checks
     runs-on: ubuntu-latest
@@ -70,17 +69,10 @@ jobs:
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -euo pipefail
+            set -e
+            cd ${{ secrets.APP_PATH }}/Personal_Finance_Manager_Project
 
-            cd ${{ secrets.APP_PATH }}
-
-            if [ ! -d "Personal_Finance_Manager_Project" ]; then
-              git clone https://github.com/Rakshan1407/MERN_Stack_Internship_Rakshan_Project.git
-              cd Personal_Finance_Manager_Project
-            else
-              cd Personal_Finance_Manager_Project
-              git pull origin dev
-            fi
+            git pull origin dev
 
             cd backend
             npm install
@@ -93,10 +85,11 @@ jobs:
             npm install
             npm run build
 
+            rm -rf /var/www/html/*
+            cp -r dist/* /var/www/html/
 
       # -----------------------------
       # EMAIL NOTIFICATION — SUCCESS
-      # -----------------------------
       - name: Send Success Email
         if: success()
         uses: devops-infra/action-send-mail@v3
@@ -118,10 +111,8 @@ jobs:
             Run URL:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-
       # -----------------------------
       # EMAIL NOTIFICATION — FAILURE
-      # -----------------------------
       - name: Send Failure Email
         if: failure()
         uses: devops-infra/action-send-mail@v3
@@ -141,3 +132,4 @@ jobs:
 
             Logs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
