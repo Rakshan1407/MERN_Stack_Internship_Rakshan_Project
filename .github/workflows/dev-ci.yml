@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   # -----------------------------
   # 1️⃣ CI JOB (Auto — Build & Verify)
   # -----------------------------
@@ -24,7 +23,7 @@ jobs:
         with:
           node-version: 18
 
-      # --- Backend CI ---
+      # Backend
       - name: Install Backend Dependencies
         working-directory: Personal_Finance_Manager_Project/backend
         run: npm install
@@ -33,7 +32,7 @@ jobs:
         working-directory: Personal_Finance_Manager_Project/backend
         run: npm run build || echo "No backend build step"
 
-      # --- Frontend CI ---
+      # Frontend
       - name: Install Frontend Dependencies
         working-directory: Personal_Finance_Manager_Project/frontend
         run: npm install
@@ -42,12 +41,9 @@ jobs:
         working-directory: Personal_Finance_Manager_Project/frontend
         run: npm run build
 
-      - name: Print Commit Info
-        run: echo "Commit triggered by ${{ github.actor }}"
-
-
   # -----------------------------
   # 2️⃣ MANUAL DEPLOY JOB
+  # -----------------------------
   deploy-to-aws:
     needs: ci-checks
     runs-on: ubuntu-latest
@@ -57,7 +53,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
+      - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -67,13 +63,19 @@ jobs:
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            cd ${{ secrets.APP_PATH }}/Personal_Finance_Manager_Project
 
+            cd ${{ secrets.APP_PATH }}
+
+            if [ ! -d "Personal_Finance_Manager_Project" ]; then
+              git clone https://github.com/Rakshan1407/MERN_Stack_Internship_Rakshan_Project.git
+            fi
+
+            cd Personal_Finance_Manager_Project
             git pull origin dev
 
+            # Backend
             cd backend
             npm install
             pm2 describe pfm-backend > /dev/null \
@@ -81,15 +83,17 @@ jobs:
               || pm2 start server.js --name pfm-backend
             pm2 save
 
+            # Frontend
             cd ../frontend
             npm install
             npm run build
 
-            rm -rf /var/www/html/*
-            cp -r dist/* /var/www/html/
+            sudo rm -rf /var/www/html/*
+            sudo cp -r build/* /var/www/html/
 
       # -----------------------------
-      # EMAIL NOTIFICATION — SUCCESS
+      # EMAIL — SUCCESS
+      # -----------------------------
       - name: Send Success Email
         if: success()
         uses: devops-infra/action-send-mail@v3
@@ -112,7 +116,8 @@ jobs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       # -----------------------------
-      # EMAIL NOTIFICATION — FAILURE
+      # EMAIL — FAILURE
+      # -----------------------------
       - name: Send Failure Email
         if: failure()
         uses: devops-infra/action-send-mail@v3
@@ -132,4 +137,3 @@ jobs:
 
             Logs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            
