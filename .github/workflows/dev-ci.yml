@@ -81,24 +81,11 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-<<<<<<< HEAD
-      - name: Copy project to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}  
-          source: "."
-          target: ${{ secrets.APP_PATH }}
-
-=======
->>>>>>> 2a8c126 (Email notification)
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
 
@@ -113,13 +100,9 @@ jobs:
 
             cd backend
             npm install
-<<<<<<< HEAD
-            pm2 reload pfm-backend --update-env || pm2 start server.js --name pfm-backend
-=======
             pm2 describe pfm-backend > /dev/null \
               && pm2 restart pfm-backend \
               || pm2 start server.js --name pfm-backend
->>>>>>> 2a8c126 (Email notification)
             pm2 save
 
             cd ../frontend
